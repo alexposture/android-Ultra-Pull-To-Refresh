@@ -17,37 +17,39 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler {
-
+    
     private final static String KEY_SharedPreferences = "cube_ptr_classic_last_update";
     private static SimpleDateFormat sDataFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private int mRotateAniTime = 150;
     private RotateAnimation mFlipAnimation;
     private RotateAnimation mReverseFlipAnimation;
     private TextView mTitleTextView;
-    private View mRotateView;
+    private View mRotateView, mFailureIcon;
     private View mProgressBar;
+    private boolean shouldAbortRefresh = false;
     private long mLastUpdateTime = -1;
     private TextView mLastUpdateTextView;
     private String mLastUpdateTimeKey;
     private boolean mShouldShowLastUpdate;
-
+    private String releaseText, refreshingText;
+    
     private LastUpdateTimeUpdater mLastUpdateTimeUpdater = new LastUpdateTimeUpdater();
-
+    
     public PtrClassicDefaultHeader(Context context) {
         super(context);
         initViews(null);
     }
-
+    
     public PtrClassicDefaultHeader(Context context, AttributeSet attrs) {
         super(context, attrs);
         initViews(attrs);
     }
-
+    
     public PtrClassicDefaultHeader(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         initViews(attrs);
     }
-
+    
     protected void initViews(AttributeSet attrs) {
         TypedArray arr = getContext().obtainStyledAttributes(attrs, R.styleable.PtrClassicHeader, 0, 0);
         if (arr != null) {
@@ -55,16 +57,21 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
         }
         buildAnimation();
         View header = LayoutInflater.from(getContext()).inflate(R.layout.cube_ptr_classic_default_header, this);
-
+        
         mRotateView = header.findViewById(R.id.ptr_classic_header_rotate_view);
-
+        
         mTitleTextView = (TextView) header.findViewById(R.id.ptr_classic_header_rotate_view_header_title);
         mLastUpdateTextView = (TextView) header.findViewById(R.id.ptr_classic_header_rotate_view_header_last_update);
         mProgressBar = header.findViewById(R.id.ptr_classic_header_rotate_view_progressbar);
-
+        mFailureIcon = header.findViewById(R.id.ptr_classic_header_failure);
+        
+        releaseText = getResources().getString(R.string.cube_ptr_release_to_refresh);
+        refreshingText = getResources().getString(R.string.cube_ptr_refreshing);
+        
+        
         resetView();
     }
-
+    
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
@@ -72,7 +79,7 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             mLastUpdateTimeUpdater.stop();
         }
     }
-
+    
     public void setRotateAniTime(int time) {
         if (time == mRotateAniTime || time == 0) {
             return;
@@ -80,7 +87,7 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
         mRotateAniTime = time;
         buildAnimation();
     }
-
+    
     /**
      * Specify the last update time by this key string
      *
@@ -92,7 +99,7 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
         }
         mLastUpdateTimeKey = key;
     }
-
+    
     /**
      * Using an object to specify the last update time.
      *
@@ -101,45 +108,45 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
     public void setLastUpdateTimeRelateObject(Object object) {
         setLastUpdateTimeKey(object.getClass().getName());
     }
-
+    
     private void buildAnimation() {
         mFlipAnimation = new RotateAnimation(0, -180, RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
         mFlipAnimation.setInterpolator(new LinearInterpolator());
         mFlipAnimation.setDuration(mRotateAniTime);
         mFlipAnimation.setFillAfter(true);
-
+        
         mReverseFlipAnimation = new RotateAnimation(-180, 0, RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
         mReverseFlipAnimation.setInterpolator(new LinearInterpolator());
         mReverseFlipAnimation.setDuration(mRotateAniTime);
         mReverseFlipAnimation.setFillAfter(true);
     }
-
+    
     private void resetView() {
         hideRotateView();
         mProgressBar.setVisibility(INVISIBLE);
     }
-
+    
     private void hideRotateView() {
         mRotateView.clearAnimation();
         mRotateView.setVisibility(INVISIBLE);
     }
-
+    
     @Override
     public void onUIReset(PtrFrameLayout frame) {
         resetView();
         mShouldShowLastUpdate = true;
         tryUpdateLastUpdateTime();
     }
-
+    
     @Override
     public void onUIRefreshPrepare(PtrFrameLayout frame) {
-
         mShouldShowLastUpdate = true;
         tryUpdateLastUpdateTime();
         mLastUpdateTimeUpdater.start();
-
+        
         mProgressBar.setVisibility(INVISIBLE);
-
+        mFailureIcon.setVisibility(INVISIBLE);
+        
         mRotateView.setVisibility(VISIBLE);
         mTitleTextView.setVisibility(VISIBLE);
         if (frame.isPullToRefresh()) {
@@ -148,28 +155,38 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             mTitleTextView.setText(getResources().getString(R.string.cube_ptr_pull_down));
         }
     }
-
+    
     @Override
     public void onUIRefreshBegin(PtrFrameLayout frame) {
         mShouldShowLastUpdate = false;
         hideRotateView();
-        mProgressBar.setVisibility(VISIBLE);
+        
+        mProgressBar.setVisibility(shouldAbortRefresh ? INVISIBLE : VISIBLE);
+        mFailureIcon.setVisibility(shouldAbortRefresh ? VISIBLE : INVISIBLE);
         mTitleTextView.setVisibility(VISIBLE);
-        mTitleTextView.setText(R.string.cube_ptr_refreshing);
-
+        mTitleTextView.setText(refreshingText);
+        
         tryUpdateLastUpdateTime();
         mLastUpdateTimeUpdater.stop();
     }
-
+    
     @Override
     public void onUIRefreshComplete(PtrFrameLayout frame) {
-
         hideRotateView();
         mProgressBar.setVisibility(INVISIBLE);
-
+        mFailureIcon.setVisibility(INVISIBLE);
+        
         mTitleTextView.setVisibility(VISIBLE);
-        mTitleTextView.setText(getResources().getString(R.string.cube_ptr_refresh_complete));
-
+        if (!shouldAbortRefresh) {
+            mTitleTextView.setText(getResources().getString(R.string.cube_ptr_refresh_complete));
+        } else {
+            shouldAbortRefresh = false;
+        }
+        
+        //updateLastUpdateTime();
+    }
+    
+    protected void updateLastUpdateTime() {
         // update last update time
         SharedPreferences sharedPreferences = getContext().getSharedPreferences(KEY_SharedPreferences, 0);
         if (!TextUtils.isEmpty(mLastUpdateTimeKey)) {
@@ -177,7 +194,7 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             sharedPreferences.edit().putLong(mLastUpdateTimeKey, mLastUpdateTime).commit();
         }
     }
-
+    
     private void tryUpdateLastUpdateTime() {
         if (TextUtils.isEmpty(mLastUpdateTimeKey) || !mShouldShowLastUpdate) {
             mLastUpdateTextView.setVisibility(GONE);
@@ -191,9 +208,9 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             }
         }
     }
-
+    
     private String getLastUpdateTime() {
-
+        
         if (mLastUpdateTime == -1 && !TextUtils.isEmpty(mLastUpdateTimeKey)) {
             mLastUpdateTime = getContext().getSharedPreferences(KEY_SharedPreferences, 0).getLong(mLastUpdateTimeKey, -1);
         }
@@ -210,7 +227,7 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
         }
         StringBuilder sb = new StringBuilder();
         sb.append(getContext().getString(R.string.cube_ptr_last_update));
-
+        
         if (seconds < 60) {
             sb.append(seconds + getContext().getString(R.string.cube_ptr_seconds_ago));
         } else {
@@ -223,21 +240,21 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
                 } else {
                     sb.append(hours + getContext().getString(R.string.cube_ptr_hours_ago));
                 }
-
+                
             } else {
                 sb.append(minutes + getContext().getString(R.string.cube_ptr_minutes_ago));
             }
         }
         return sb.toString();
     }
-
+    
     @Override
     public void onUIPositionChange(PtrFrameLayout frame, boolean isUnderTouch, byte status, PtrIndicator ptrIndicator) {
-
+        
         final int mOffsetToRefresh = frame.getOffsetToRefresh();
         final int currentPos = ptrIndicator.getCurrentPosY();
         final int lastPos = ptrIndicator.getLastPosY();
-
+        
         if (currentPos < mOffsetToRefresh && lastPos >= mOffsetToRefresh) {
             if (isUnderTouch && status == PtrFrameLayout.PTR_STATUS_PREPARE) {
                 crossRotateLineFromBottomUnderTouch(frame);
@@ -256,14 +273,19 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             }
         }
     }
-
+    
+    protected void setReleaseRefreshingText(final String releaseText, final String refreshingText) {
+        this.releaseText = releaseText;
+        this.refreshingText = refreshingText;
+    }
+    
     private void crossRotateLineFromTopUnderTouch(PtrFrameLayout frame) {
         if (!frame.isPullToRefresh()) {
             mTitleTextView.setVisibility(VISIBLE);
-            mTitleTextView.setText(R.string.cube_ptr_release_to_refresh);
+            mTitleTextView.setText(releaseText);
         }
     }
-
+    
     private void crossRotateLineFromBottomUnderTouch(PtrFrameLayout frame) {
         mTitleTextView.setVisibility(VISIBLE);
         if (frame.isPullToRefresh()) {
@@ -272,11 +294,18 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             mTitleTextView.setText(getResources().getString(R.string.cube_ptr_pull_down));
         }
     }
-
+    
+    protected boolean getShouldAbort() {
+        return this.shouldAbortRefresh;
+    }
+    protected void setShouldAbort(final boolean shouldAbortRefresh) {
+        this.shouldAbortRefresh = shouldAbortRefresh;
+    }
+    
     private class LastUpdateTimeUpdater implements Runnable {
-
+        
         private boolean mRunning = false;
-
+        
         private void start() {
             if (TextUtils.isEmpty(mLastUpdateTimeKey)) {
                 return;
@@ -284,12 +313,12 @@ public class PtrClassicDefaultHeader extends FrameLayout implements PtrUIHandler
             mRunning = true;
             run();
         }
-
+        
         private void stop() {
             mRunning = false;
             removeCallbacks(this);
         }
-
+        
         @Override
         public void run() {
             tryUpdateLastUpdateTime();

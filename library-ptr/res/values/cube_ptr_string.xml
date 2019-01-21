@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="cube_ptr_pull_down">A bit more to go!</string>
+    <string name="cube_ptr_pull_down_to_refresh">Pull Down to Refresh</string>
+    <string name="cube_ptr_release_to_refresh">Now release to connect or sync data!</string>
+    <string name="cube_ptr_refreshing">Loading posture data...</string>
+    <string name="cube_ptr_refresh_complete">SUCCESS :)</string>
+
+    <string name="cube_ptr_last_update">last sync:&#160;</string>
+    <string name="cube_ptr_seconds_ago">&#160;seconds ago</string>
+    <string name="cube_ptr_minutes_ago">&#160;minutes ago</string>
+    <string name="cube_ptr_hours_ago">&#160;hours ago</string>
+
+</resources>

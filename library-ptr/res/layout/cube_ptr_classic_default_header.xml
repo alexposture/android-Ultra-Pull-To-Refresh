@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    >
 
     <RelativeLayout
         android:layout_width="fill_parent"
@@ -9,7 +12,7 @@
 
         <LinearLayout
             android:id="@+id/ptr_classic_header_rotate_view_header_text"
-            android:layout_width="150dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:gravity="center"
@@ -19,16 +22,18 @@
                 android:id="@+id/ptr_classic_header_rotate_view_header_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#666666"
-                android:textSize="12sp" />
+                android:textColor="#57B5AD"
+                android:textSize="14dp"
+                android:textStyle="bold"
+                />
 
             <TextView
                 android:id="@+id/ptr_classic_header_rotate_view_header_last_update"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textColor="#999999"
-                android:textSize="10sp" />
+                android:textColor="#777777"
+                android:textSize="12dp" />
         </LinearLayout>
 
         <FrameLayout
@@ -43,15 +48,35 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:src="@drawable/ptr_rotate_arrow" />
+                android:src="@drawable/ptr_rotate_arrow"
+                android:tint="#31C192"
+                />
 
             <ProgressBar
                 android:id="@+id/ptr_classic_header_rotate_view_progressbar"
-                style="@android:style/Widget.ProgressBar.Small"
+                style="@android:style/Widget.Material.Light.ProgressBar.Small"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center" />
+                android:layout_gravity="center"
+                android:indeterminateTint="#31C192"
+                />
+
+            <ImageView
+                android:id="@+id/ptr_classic_header_failure"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#ff0000"
+                android:visibility="gone"
+                android:layout_gravity="center"
+                />
+
         </FrameLayout>
     </RelativeLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:background="@drawable/shadow"
+        />
 </LinearLayout>
